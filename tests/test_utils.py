@@ -635,7 +635,7 @@ def test_rename_keys_key_error_missing_key(mapping, keys, keep_keys_old, silent_
 
 
 td_rename_keys_unsafe_keys_new = (
-    'mapping, keys, keep_keys_old, silent_key_error, expected',
+    'mapping, keys, keep_keys_old, silent_key_error, unsafe_keys_old, unsafe_keys_new, inplace, expected',
     [
         (
             {
@@ -643,8 +643,26 @@ td_rename_keys_unsafe_keys_new = (
                 'b': 44,
                 'c': 'string',
             },
-            ('key_not_in', 'aa'),
+            ('a', 'a'),
             False,
+            False,
+            False,
+            True,
+            False,
+            {},
+        ),
+        (
+            {
+                'a': True,
+                'b': 44,
+                'c': 'string',
+                'd': object(),
+            },
+            [('a', 'z'), ('c', 'd')],  # change key 'c' to 'd' which accidentally overrides already the existing 'd'
+            False,
+            False,
+            False,
+            True,
             False,
             {},
         ),
@@ -654,6 +672,22 @@ td_rename_keys_unsafe_keys_new = (
 
 
 @pytest.mark.parametrize(*td_rename_keys_unsafe_keys_new)
-def test_rename_keys_unsafe_keys_new(mapping, keys, keep_keys_old, silent_key_error, expected):
+def test_rename_keys_unsafe_keys_new(
+        mapping,
+        keys,
+        keep_keys_old,
+        silent_key_error,
+        unsafe_keys_old,
+        unsafe_keys_new,
+        inplace,
+        expected,
+):
     with pytest.raises(KeyError):
-        _ = scorpion.utils.rename_keys(mapping, keys, keep_keys_old, silent_key_error)
+        _ = scorpion.utils.rename_keys(
+            mapping,
+            keys,
+            keep_keys_old,
+            unsafe_keys_old,
+            unsafe_keys_new,
+            inplace,
+            silent_key_error)

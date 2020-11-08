@@ -10,7 +10,7 @@ import pandas as pd
 from typing import Tuple, Iterable, Hashable, Union, List, Dict, Any, Mapping
 
 
-KeyPair = Tuple[Hashable, Hashable]
+# KeyPair = Tuple[Hashable, Hashable]
 
 
 def raise_key_error_if_missing_key(mapping, keys: Iterable):
@@ -21,6 +21,22 @@ def raise_key_error_if_missing_key(mapping, keys: Iterable):
                 f'\n these keys were provided: {keys}'
                 f'\n This mapping was provided: {mapping}'
             )
+
+
+@dataclass
+class KeyPair:
+    old: Hashable
+    new: Hashable
+
+    def __eq__(self, other):
+        if not isinstance(other, KeyPair):
+            raise TypeError(
+                f'Other "{other}" is not of type {self.__class__.__qualname__} and cannot be compared'
+            )
+        return self.old == other.old and self.new == other.new
+
+    def __hash__(self):
+        return hash(self.old) + hash(self.new)
 
 
 def rename_keys(
@@ -39,18 +55,19 @@ def rename_keys(
 
     @key_pairs_as_named_tuple.register
     def _(keys: tuple):
-        return key_pair(keys[0], keys[1])
+        # return key_pair(keys[0], keys[1])
+        return KeyPair(keys[0], keys[1])
 
     @key_pairs_as_named_tuple.register
     def _(keys: list):
-        return [key_pair(key[0], key[1]) for key in keys]
+        return [KeyPair(key[0], key[1]) for key in keys]
 
     @singledispatch
     def key_pairs_to_list(key_pairs):
         return key_pairs
 
     @key_pairs_to_list.register
-    def _(key_pairs: tuple):
+    def _(key_pairs: KeyPair):
         return [key_pairs]
 
     @key_pairs_to_list.register
@@ -70,6 +87,9 @@ def rename_keys(
         return mapping_new if not keep_keys_old else merge_mapping_new_with_keys_old()
 
     def check(mapping, key_pairs):
+
+        # TODO needs refactoring into multiple subprograms
+
         if not silent_key_error:
             keys_old_as_set = set(key_pair.old for key_pair in key_pairs)
             raise_key_error_if_missing_key(mapping, keys_old_as_set)
@@ -85,10 +105,24 @@ def rename_keys(
             equal_key = lambda key_pair: key_pair.old == key_pair.new
             equal_keys = Counter([key_pair for key_pair in key_pairs if equal_key(key_pair)])
             if any(equal_keys):
-                equal_keys_joined = ', '. join(equal_keys)
+                equal_keys_joined = ', '. join(map(str, equal_keys))
                 raise KeyError(f'Old key is equal to new key: {equal_keys_joined}')
 
-    key_pair = namedtuple('key_pair', 'old new')
+            ####
+            key_new_in_mapping_and_not_current_old = (
+                lambda key_new, current_old: key_new in mapping and key_new != current_old)
+            key_new_overrides = [
+                key_pair.new
+                for key_pair in key_pairs
+                if key_new_in_mapping_and_not_current_old(key_pair.new, key_pair.old)
+            ]
+            if any(key_new_overrides):
+                key_new_overrides_joined = ', '. join(key_new_overrides)
+                raise KeyError(
+                    f'Keys "{key_new_overrides_joined}" will override already existing keys in mapping')
+
+
+    #key_pair = namedtuple('key_pair', 'old new')
     key_pairs = key_pairs_as_named_tuple(key_pairs)
     key_pairs_as_list = key_pairs_to_list(key_pairs)
 
