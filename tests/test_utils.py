@@ -551,7 +551,7 @@ def test_filter_keys_value_error(mapping, filter_keys, method, silent_key_error,
 
 
 td_rename_keys = (
-    'mapping, keys, keep_old_keys, silent_key_error, expected',
+    'mapping, keys, keep_keys_old, silent_key_error, expected',
     [
         (
             {
@@ -605,12 +605,12 @@ td_rename_keys = (
 
 
 @pytest.mark.parametrize(*td_rename_keys)
-def test_filter_keys_positive(mapping, keys, keep_old_keys, silent_key_error, expected):
-    assert scorpion.utils.rename_keys(mapping, keys, keep_old_keys, silent_key_error) == expected
+def test_filter_rename_keys_positive(mapping, keys, keep_keys_old, silent_key_error, expected):
+    assert scorpion.utils.rename_keys(mapping, keys, keep_keys_old, silent_key_error) == expected
 
 
-td_rename_keys_key_error = (
-    'mapping, keys, keep_old_keys, silent_key_error, expected',
+td_rename_keys_key_error_missing_key = (
+    'mapping, keys, keep_keys_old, silent_key_error, expected',
     [
         (
             {
@@ -628,7 +628,32 @@ td_rename_keys_key_error = (
 )
 
 
-@pytest.mark.parametrize(*td_rename_keys_key_error)
-def test_filter_keys_value_error(mapping, keys, keep_old_keys, silent_key_error, expected):
+@pytest.mark.parametrize(*td_rename_keys_key_error_missing_key)
+def test_rename_keys_key_error_missing_key(mapping, keys, keep_keys_old, silent_key_error, expected):
     with pytest.raises(KeyError):
-        _ = scorpion.utils.rename_keys(mapping, keys, keep_old_keys, silent_key_error)
+        _ = scorpion.utils.rename_keys(mapping, keys, keep_keys_old, silent_key_error)
+
+
+td_rename_keys_unsafe_keys_new = (
+    'mapping, keys, keep_keys_old, silent_key_error, expected',
+    [
+        (
+            {
+                'a': True,
+                'b': 44,
+                'c': 'string',
+            },
+            ('key_not_in', 'aa'),
+            False,
+            False,
+            {},
+        ),
+
+    ],
+)
+
+
+@pytest.mark.parametrize(*td_rename_keys_unsafe_keys_new)
+def test_rename_keys_unsafe_keys_new(mapping, keys, keep_keys_old, silent_key_error, expected):
+    with pytest.raises(KeyError):
+        _ = scorpion.utils.rename_keys(mapping, keys, keep_keys_old, silent_key_error)

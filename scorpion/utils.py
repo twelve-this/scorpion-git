@@ -28,13 +28,14 @@ def rename_keys(
         key_pairs: Union[KeyPair, List[KeyPair]],
         keep_keys_old: bool = False,
         silent_key_error: bool = False,
-        unsafe_old_keys: bool = False,
-        unsafe_new_keys: bool = False,
+        unsafe_keys_old: bool = False,
+        unsafe_keys_new: bool = False,
+        inplace: bool = False,
 ) -> Dict:
 
     @singledispatch
     def key_pairs_as_named_tuple(keys):
-        return
+        return keys
 
     @key_pairs_as_named_tuple.register
     def _(keys: tuple):
@@ -46,7 +47,7 @@ def rename_keys(
 
     @singledispatch
     def key_pairs_to_list(key_pairs):
-        return
+        return key_pairs
 
     @key_pairs_to_list.register
     def _(key_pairs: tuple):
@@ -70,21 +71,29 @@ def rename_keys(
 
     def check(mapping, key_pairs):
         if not silent_key_error:
-            raise_key_error_if_missing_key(mapping, key_pairs)
+            keys_old_as_set = set(key_pair.old for key_pair in key_pairs)
+            raise_key_error_if_missing_key(mapping, keys_old_as_set)
 
-        if not unsafe_old_keys:
-            old_keys_count = Counter([key.old for key in key_pairs])
+        if not unsafe_keys_old:
+            old_keys_count = Counter([key_pair.old for key_pair in key_pairs])
             old_keys_count_gt_1 = [key for key, value in old_keys_count.items() if value > 1]
             if any(old_keys_count_gt_1):
                 ambiguous_keys = ', '.join(old_keys_count_gt_1)
-                raise KeyError(f'The following key are ambiguous: {ambiguous_keys}')
+                raise KeyError(f'The following keys are ambiguous: {ambiguous_keys}')
+
+        if not unsafe_keys_new:
+            equal_key = lambda key_pair: key_pair.old == key_pair.new
+            equal_keys = Counter([key_pair for key_pair in key_pairs if equal_key(key_pair)])
+            if any(equal_keys):
+                equal_keys_joined = ', '. join(equal_keys)
+                raise KeyError(f'Old key is equal to new key: {equal_keys_joined}')
 
     key_pair = namedtuple('key_pair', 'old new')
     key_pairs = key_pairs_as_named_tuple(key_pairs)
-
-    check(mapping, key_pairs)
-
     key_pairs_as_list = key_pairs_to_list(key_pairs)
+
+    check(mapping, key_pairs_as_list)
+
     return rename(mapping, key_pairs_as_list)
 
 
