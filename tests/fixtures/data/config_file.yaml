@@ -1,0 +1,11 @@
+config:
+  global:
+    - nrows: 10
+    - rename_columns: true
+  sources:
+    - key: source_1
+      path_to_source_1: dummy_path_1
+    - key: source_2
+      path_to_source_2: dummy_path_2
+  process-steps: [ ]
+  output: [ ]

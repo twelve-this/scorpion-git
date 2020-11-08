@@ -1,0 +1,8 @@
+params:
+  - priority
+  - config_global
+  - config_local
+  - allowed_local_config_items
+  - expected
+
+testcases:
